@@ -8,50 +8,198 @@
   <style>
     body {
       font-family: sans-serif;
-      margin: 2rem;
+      margin: 0;
+      padding: 0;
+      height: 100%;
     }
+
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    .center-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin-top: auto;
+      margin-bottom: 5rem;
+      padding: 2rem 1rem;
+      transition: padding 0.3s ease;
+    }
+
     #timer-display {
-      font-size: 3rem;
-      margin-bottom: 1rem;
+      font-size: 8rem;
+      font-weight: bold;
+      text-align: center;
+      color: #222;
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+      margin: 1rem 0;
     }
+
+    #timer-seconds-section.dimmed {
+      color: #ccc;
+      transition: color 0.3s ease;
+    }
+
+    #timer-seconds-section {
+      color: #222;
+      font-weight: bold;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap; /* optional: allows wrapping on small screens */
+      margin-top: 1.5rem;
+    }
+
     .button {
-      margin: 0.5rem 0.5rem 1rem 0;
+      margin: 0.5rem;
+      padding: 0.6rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      transition: background 0.2s ease, transform 0.1s ease;
+      color: #fff;
     }
+    
+    .button:active {
+      transform: scale(0.97);
+    }
+    
+    .button:hover {
+      filter: brightness(1.1);
+    }
+
+    /* Specific color themes */
+    .button.start {
+      background-color: #1a73e8;
+    }
+
+    .button.reset {
+      background-color: #d93025;
+    }
+
+    .button.fullscreen {
+      background-color: #5f6368;
+    }
+
+    .button.dimmed {
+      background-color: #e0e0e0 !important;
+      color: #888 !important;
+      opacity: 0.5;
+      filter: none;
+      pointer-events: auto;
+      transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+    }
+
+    .button.dimmed:hover {
+      opacity: 1;
+      background-color: #ccc !important;
+      color: #333 !important;
+    }
+
+    .time-inputs {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .time-inputs.fade-out {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .time-inputs input {
+      font-size: 2rem;
+      width: 80px;
+      text-align: center;
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .placeholder{
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 0 0.2rem;
+    }
+
+    .markdown-container {
+        padding: 2rem;
+    }
+
     #markdown-view, #markdown-editor {
       border: 1px solid #ccc;
       padding: 10px;
       min-height: 100px;
       margin-top: 10px;
+      font-size: 1.8rem;
       background: #f9f9f9;
     }
     #markdown-editor {
       display: none;
       width: 100%;
-      height: 150px;
+      min-height: 150px;
       font-family: monospace;
     }
-  </style>
+    @media (max-width: 600px) {
+          #timer-display {
+            font-size: 4rem;
+          }
+        }
+
+    @keyframes flicker {
+          0%, 100% { opacity: 1; color: #222; }
+          50% { opacity: 1; color: red; }
+        }
+
+        .timer-alert {
+          animation: flicker 0.6s steps(1, start) infinite;
+        }
+
+      </style>
 </head>
 <body>
-
-  <h1>Countdown Timer</h1>
-
-  <label for="minutes">Minutes:</label>
-  <input type="number" id="minutes" value="1" min="0" />
-  <label for="seconds">Seconds:</label>
-  <input type="number" id="seconds" value="0" min="0" max="59" />
-  <br/>
-
-  <div id="timer-display">00:00</div>
-
-  <button class="button" onclick="startTimer()">Start</button>
-  <button class="button" onclick="resetTimer()">Reset</button>
-
-  <h2>Correction Notes</h2>
+<div class="page-container">
+<div class="center-container">
+    <div id="timer-display">
+        <span id="timer-minutes">00</span><span class="placeholder" id="minutes_placeholder">min</span>
+        <span id="timer-seconds-section"><span id="timer-seconds">00</span><span class="placeholder" id="seconds_placeholder">sec</span></span>
+    </div>
+    <div class="time-inputs">
+        <input type="number" id="minutes" value="1" min="0" max="999" aria-label="Minutes" />
+        <span class="placeholder">:</span>
+        <input type="number" id="seconds" value="0" min="0" max="59" aria-label="Seconds" />
+    </div>
+      <br/>
+    <div class="buttons">
+          <button class="button start" onclick="startTimer()">Start</button>
+          <button class="button reset" onclick="resetTimer()">Reset</button>
+          <button class="button fullscreen" onclick="toggleFullscreen()">Fullscreen</button>
+    </div>
+</div>
+<div class="markdown-container">
+  <h2>Corrections</h2>
   <div id="markdown-view"></div>
   <textarea id="markdown-editor"></textarea>
+</div>
+</div>
 
-  <script>
+<script>
     // === Timer logic ===
     let interval;
     let remaining = 0;
@@ -65,28 +213,81 @@
     }
 
     function startTimer() {
+      let tick_count = 0;
       clearInterval(interval);
       const mins = parseInt(document.getElementById('minutes').value) || 0;
       const secs = parseInt(document.getElementById('seconds').value) || 0;
       remaining = mins * 60 + secs;
 
+      const min = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const sec = (remaining % 60).toString().padStart(2, '0');
+
+      document.getElementById('timer-minutes').textContent = min;
+      document.getElementById('timer-seconds').textContent = sec;
+
+     // Hide time inputs
+      document.querySelector('.time-inputs').classList.add('fade-out');
+
+      // Remove dimming before starting
+      document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
+
+      // Dim after 3 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.button').forEach(btn => btn.classList.add('dimmed'));
+      }, 3000);
+
       interval = setInterval(() => {
-        timerDisplay.textContent = formatTime(remaining);
+        const min = Math.floor(remaining / 60).toString().padStart(2, '0');
+        const sec = (remaining % 60).toString().padStart(2, '0');
+
+        document.getElementById('timer-minutes').textContent = min;
+        document.getElementById('timer-seconds').textContent = sec;
+
+        const secSpan = document.getElementById('timer-seconds-section');
+        if (tick_count > 4 && min !== '00') {
+          secSpan.classList.add('dimmed');
+        } else {
+          secSpan.classList.remove('dimmed');
+        }
+
         if (remaining <= 0) {
           clearInterval(interval);
+          secSpan.classList.remove('dimmed');
+          document.getElementById('timer-minutes').classList.add('timer-alert');
+          document.getElementById('timer-seconds').classList.add('timer-alert');
         }
+        tick_count++;
         remaining--;
       }, 1000);
     }
 
+
     function resetTimer() {
       clearInterval(interval);
-      remaining = 0;
-      timerDisplay.textContent = "00:00";
+      document.getElementById('timer-minutes').classList.remove('timer-alert');
+      document.getElementById('timer-seconds').classList.remove('timer-alert');
+      const mins = parseInt(document.getElementById('minutes').value) || 0;
+      const secs = parseInt(document.getElementById('seconds').value) || 0;
+      remaining = mins * 60 + secs;
+      const min = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const sec = (remaining % 60).toString().padStart(2, '0');
+
+      // Remove dimming
+      const secSpan = document.getElementById('timer-seconds-section');
+      secSpan.classList.remove('dimmed');
+
+      document.getElementById('timer-minutes').textContent = min;
+      document.getElementById('timer-seconds').textContent = sec;
+
+     // Show time inputs
+      document.querySelector('.time-inputs').classList.remove('fade-out');
+
+      // Restore button visibility
+      document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
     }
 
     // === In-place Markdown Editor ===
-    const defaultMarkdown = "# Corrections \n- Click to edit";
+    const defaultMarkdown = "";
     const view = document.getElementById('markdown-view');
     const editor = document.getElementById('markdown-editor');
 
@@ -110,8 +311,23 @@
       editor.style.display = 'none';
       view.style.display = 'block';
     });
+
+    // === Fullscreen toggle ===
+    function toggleFullscreen() {
+      const doc = document.documentElement;
+      if (!document.fullscreenElement) {
+        if (doc.requestFullscreen) doc.requestFullscreen();
+        else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+        else if (doc.mozRequestFullScreen) doc.mozRequestFullScreen();
+        else if (doc.msRequestFullscreen) doc.msRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+        else if (document.msExitFullscreen) document.msExitFullscreen();
+      }
+    }
   </script>
 
 </body>
 </html>
-
