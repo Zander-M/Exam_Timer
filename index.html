@@ -181,9 +181,9 @@
         <span id="timer-seconds-section"><span id="timer-seconds">00</span><span class="placeholder" id="seconds_placeholder">sec</span></span>
     </div>
     <div class="time-inputs">
-        <input type="number" id="minutes" value="1" min="0" max="999" aria-label="Minutes" />
+        <input type="number" id="minutes" value="60" min="0" max="999" aria-label="Minutes" />
         <span class="placeholder">:</span>
-        <input type="number" id="seconds" value="0" min="0" max="59" aria-label="Seconds" />
+        <input type="number" id="seconds" value="00" min="0" max="59" aria-label="Seconds" />
     </div>
       <br/>
     <div class="buttons">
@@ -244,6 +244,10 @@
         document.getElementById('timer-seconds').textContent = sec;
 
         const secSpan = document.getElementById('timer-seconds-section');
+
+        // Dimming the seconds part after a few seconds. Display seconds again
+        // when time is less than a minute.
+
         if (tick_count > 4 && min !== '00') {
           secSpan.classList.add('dimmed');
         } else {
