@@ -160,6 +160,26 @@
       min-height: 150px;
       font-family: monospace;
     }
+
+    .options {
+      font-size: 0.9rem;
+      color: #444;
+      margin-top: 1rem;
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+    }
+    .options label {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .options.hidden {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+
     @media (max-width: 600px) {
           #timer-display {
             font-size: 4rem;
@@ -196,6 +216,10 @@
           <button class="button fullscreen" onclick="toggleFullscreen()">Fullscreen</button>
     </div>
 </div>
+<div class="options">
+  <label><input type="checkbox" id="enable-alarm" checked> 🔔</label>
+  <label><input type="checkbox" id="enable-confetti" checked> 🎉</label>
+</div>
 <div class="markdown-container">
   <h2>Announcements</h2>
   <div id="markdown-view"></div>
@@ -213,6 +237,7 @@
     let remaining = 0;
     let isPaused = false;
     let pauseRemaining = null;
+    let dimTimeout = null;
 
     const timerDisplay = document.getElementById('timer-display');
 
@@ -223,6 +248,7 @@
     }
 
     function startTimer(resume = false) {
+
       let tick_count = 0;
       if (interval !== null && !isPaused) {
         // Pause logic
@@ -241,6 +267,13 @@
       stopFireworks();
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
+
+      // Button display timeout 
+      if (dimTimeout) {
+        clearTimeout(dimTimeout);
+        dimTimeout = null;
+      }
+      document.querySelector('.options').classList.add('hidden');
     
       clearInterval(interval);
     
@@ -271,7 +304,7 @@
       document.querySelector('.time-inputs').classList.add('fade-out');
       document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
     
-      setTimeout(() => {
+      dimTimeout = setTimeout(() => {
         document.querySelectorAll('.button').forEach(btn => btn.classList.add('dimmed'));
       }, 3000);
     
@@ -294,8 +327,14 @@
           secSpan.classList.remove('dimmed');
           document.getElementById('timer-minutes').classList.add('timer-alert');
           document.getElementById('timer-seconds').classList.add('timer-alert');
-          launchFireworks();
-          document.getElementById('alarm-sound').play().catch(() => {});
+
+          if (document.getElementById('enable-confetti').checked) {
+            launchFireworks();
+          }
+          if (document.getElementById('enable-alarm').checked) {
+            document.getElementById('alarm-sound').play().catch(() => {});
+          }
+
           localStorage.removeItem('timerStartTimestamp'); // Clear after end
         }
       
@@ -310,6 +349,7 @@
       isPaused = false;
       pauseRemaining = null;
 
+
       document.querySelector('.button.start').textContent = "Start"
       stopFireworks();
 
@@ -318,6 +358,7 @@
       localStorage.removeItem('pausedRemaining');
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
+      document.querySelector('.options').classList.remove('hidden');
     
       const mins = parseInt(document.getElementById('minutes').value) || 0;
       const secs = parseInt(document.getElementById('seconds').value) || 0;
@@ -329,6 +370,11 @@
       document.getElementById('timer-minutes').textContent = min;
       document.getElementById('timer-seconds').textContent = sec;
     
+      if (dimTimeout) {
+        clearTimeout(dimTimeout);
+        dimTimeout = null;
+      }
+      document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
       document.getElementById('timer-seconds-section').classList.remove('dimmed');
       document.querySelector('.time-inputs').classList.remove('fade-out');
       document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
@@ -390,7 +436,20 @@
           }
         }
       }
+
+      // Restore options 
+      document.getElementById('enable-alarm').checked = localStorage.getItem('enableAlarm') !== 'false';
+      document.getElementById('enable-confetti').checked = localStorage.getItem('enableConfetti') !== 'false';
     });
+
+    // Save options
+    document.getElementById('enable-alarm').addEventListener('change', e => {
+      localStorage.setItem('enableAlarm', e.target.checked);
+    });
+    document.getElementById('enable-confetti').addEventListener('change', e => {
+      localStorage.setItem('enableConfetti', e.target.checked);
+    });
+
 
     // Save Markdown
     editor.addEventListener('blur', () => {
