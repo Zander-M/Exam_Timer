@@ -220,102 +220,91 @@
       return `${min}:${sec}`;
     }
 
-    function startTimer() {
+    function startTimer(resume = false) {
       let tick_count = 0;
-
-      // Remove effects
       stopFireworks();
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
-
+    
       clearInterval(interval);
-      const mins = parseInt(document.getElementById('minutes').value) || 0;
-      const secs = parseInt(document.getElementById('seconds').value) || 0;
-      remaining = mins * 60 + secs;
-
+    
+      let mins, secs;
+      if (!resume) {
+        mins = parseInt(document.getElementById('minutes').value) || 0;
+        secs = parseInt(document.getElementById('seconds').value) || 0;
+        remaining = mins * 60 + secs;
+      
+        // Save timestamp and duration
+        localStorage.setItem('timerStartTimestamp', Date.now().toString());
+        localStorage.setItem('timerDuration', remaining.toString());
+      }
+    
       const min = Math.floor(remaining / 60).toString().padStart(2, '0');
       const sec = (remaining % 60).toString().padStart(2, '0');
-
+    
       document.getElementById('timer-minutes').textContent = min;
       document.getElementById('timer-seconds').textContent = sec;
-
-      // Remove dimming
-      const secSpan = document.getElementById('timer-seconds-section');
-      secSpan.classList.remove('dimmed');
-
-     // Hide time inputs
+    
+      document.getElementById('timer-seconds-section').classList.remove('dimmed');
       document.querySelector('.time-inputs').classList.add('fade-out');
-
-      // Remove dimming before starting
       document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
-
-      // Dim after 3 seconds
+    
       setTimeout(() => {
         document.querySelectorAll('.button').forEach(btn => btn.classList.add('dimmed'));
       }, 3000);
-
+    
       interval = setInterval(() => {
         const min = Math.floor(remaining / 60).toString().padStart(2, '0');
         const sec = (remaining % 60).toString().padStart(2, '0');
-
+      
         document.getElementById('timer-minutes').textContent = min;
         document.getElementById('timer-seconds').textContent = sec;
-
+      
         const secSpan = document.getElementById('timer-seconds-section');
-
-        // Dimming the seconds part after a few seconds. Display seconds again
-        // when time is less than a minute.
-
         if (tick_count > 4 && min !== '00') {
           secSpan.classList.add('dimmed');
         } else {
           secSpan.classList.remove('dimmed');
         }
-
+      
         if (remaining <= 0) {
           clearInterval(interval);
           secSpan.classList.remove('dimmed');
           document.getElementById('timer-minutes').classList.add('timer-alert');
           document.getElementById('timer-seconds').classList.add('timer-alert');
           launchFireworks();
-          
-          // Play sound
-          const audio = document.getElementById('alarm-sound');
-          audio.currentTime = 0;
-          audio.play().catch((err) => {
-            console.warn("Audio playback failed:", err);
-          });
+          document.getElementById('alarm-sound').play().catch(() => {});
+          localStorage.removeItem('timerStartTimestamp'); // Clear after end
         }
+      
         tick_count++;
         remaining--;
       }, 1000);
     }
 
-
     function resetTimer() {
       clearInterval(interval);
       stopFireworks();
+      localStorage.removeItem('timerStartTimestamp');
+      localStorage.removeItem('timerDuration');
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
+    
       const mins = parseInt(document.getElementById('minutes').value) || 0;
       const secs = parseInt(document.getElementById('seconds').value) || 0;
       remaining = mins * 60 + secs;
+    
       const min = Math.floor(remaining / 60).toString().padStart(2, '0');
       const sec = (remaining % 60).toString().padStart(2, '0');
-
-      // Remove dimming
-      const secSpan = document.getElementById('timer-seconds-section');
-      secSpan.classList.remove('dimmed');
-
+    
       document.getElementById('timer-minutes').textContent = min;
       document.getElementById('timer-seconds').textContent = sec;
-
-     // Show time inputs
+    
+      document.getElementById('timer-seconds-section').classList.remove('dimmed');
       document.querySelector('.time-inputs').classList.remove('fade-out');
-
-      // Restore button visibility
       document.querySelectorAll('.button').forEach(btn => btn.classList.remove('dimmed'));
     }
+
 
     // === In-place Markdown Editor ===
     const defaultMarkdown = "";
@@ -331,7 +320,7 @@
     renderMarkdown(defaultMarkdown);
 
     view.addEventListener('click', () => {
-      editor.value = editor.value.trim() || "# New note";
+      editor.value = editor.value.trim() || "- ";
       editor.style.display = 'block';
       view.style.display = 'none';
       editor.focus();
@@ -342,6 +331,39 @@
       editor.style.display = 'none';
       view.style.display = 'block';
     });
+
+    // Restore previous states
+    window.addEventListener('DOMContentLoaded', () => {
+      // Restore markdown
+      const savedMarkdown = localStorage.getItem('markdownContent');
+      if (savedMarkdown) {
+        editor.value = savedMarkdown;
+        renderMarkdown(savedMarkdown);
+      }
+    
+      // Restore timer
+      const savedStart = localStorage.getItem('timerStartTimestamp');
+      const duration = parseInt(localStorage.getItem('timerDuration'));
+      if (savedStart && duration) {
+        const elapsed = Math.floor((Date.now() - parseInt(savedStart)) / 1000);
+        const remainingTime = duration - elapsed;
+        if (remainingTime > 0) {
+          remaining = remainingTime;
+          startTimer(true); // Resume mode
+        } else {
+          localStorage.removeItem('timerStartTimestamp');
+        }
+      }
+    });
+
+    // Save Markdown
+    editor.addEventListener('blur', () => {
+      renderMarkdown(editor.value);
+      localStorage.setItem('markdownContent', editor.value);
+      editor.style.display = 'none';
+      view.style.display = 'block';
+    });
+
 
     // === Fullscreen toggle ===
     function toggleFullscreen() {
