@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Exam Timer with Notes</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lekton:ital,wght@0,400;0,700;1,400&family=Sono&display=swap" rel="stylesheet">
@@ -45,7 +46,7 @@
     }
 
     #timer-seconds-section.dimmed {
-      color: #ccc;
+      color: #e0e0e0;
       transition: color 0.3s ease;
     }
 
@@ -200,6 +201,10 @@
   <div id="markdown-view"></div>
   <textarea id="markdown-editor"></textarea>
 </div>
+<audio id="alarm-sound" preload="auto">
+  <source src="notification.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
 </div>
 
 <script>
@@ -217,6 +222,12 @@
 
     function startTimer() {
       let tick_count = 0;
+
+      // Remove effects
+      stopFireworks();
+      document.getElementById('timer-minutes').classList.remove('timer-alert');
+      document.getElementById('timer-seconds').classList.remove('timer-alert');
+
       clearInterval(interval);
       const mins = parseInt(document.getElementById('minutes').value) || 0;
       const secs = parseInt(document.getElementById('seconds').value) || 0;
@@ -227,6 +238,10 @@
 
       document.getElementById('timer-minutes').textContent = min;
       document.getElementById('timer-seconds').textContent = sec;
+
+      // Remove dimming
+      const secSpan = document.getElementById('timer-seconds-section');
+      secSpan.classList.remove('dimmed');
 
      // Hide time inputs
       document.querySelector('.time-inputs').classList.add('fade-out');
@@ -262,6 +277,14 @@
           secSpan.classList.remove('dimmed');
           document.getElementById('timer-minutes').classList.add('timer-alert');
           document.getElementById('timer-seconds').classList.add('timer-alert');
+          launchFireworks();
+          
+          // Play sound
+          const audio = document.getElementById('alarm-sound');
+          audio.currentTime = 0;
+          audio.play().catch((err) => {
+            console.warn("Audio playback failed:", err);
+          });
         }
         tick_count++;
         remaining--;
@@ -271,6 +294,7 @@
 
     function resetTimer() {
       clearInterval(interval);
+      stopFireworks();
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
       const mins = parseInt(document.getElementById('minutes').value) || 0;
@@ -334,6 +358,31 @@
         else if (document.msExitFullscreen) document.msExitFullscreen();
       }
     }
+
+    // === Confetti ===
+    let confettiInterval = null;
+
+    function launchFireworks() {
+      confettiInterval = setInterval(() => {
+        confetti({
+          particleCount: 30,
+          angle: Math.random() * 60 + 60, // upward burst
+          spread: 90,
+          startVelocity: 45,
+          decay: 0.9,
+          origin: {
+            x: Math.random(),       // anywhere along width
+            y: 1                    // bottom of screen
+          }
+        });
+      }, 400);
+    }
+
+    function stopFireworks() {
+      clearInterval(confettiInterval);
+      confettiInterval = null;
+    }
+
   </script>
 
 </body>
