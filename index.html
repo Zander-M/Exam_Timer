@@ -209,8 +209,10 @@
 
 <script>
     // === Timer logic ===
-    let interval;
+    let interval = null;
     let remaining = 0;
+    let isPaused = false;
+    let pauseRemaining = null;
 
     const timerDisplay = document.getElementById('timer-display');
 
@@ -222,6 +224,20 @@
 
     function startTimer(resume = false) {
       let tick_count = 0;
+      if (interval !== null && !isPaused) {
+        // Pause logic
+        clearInterval(interval);
+        isPaused = true;
+        pauseRemaining = remaining;
+        localStorage.setItem("pausedRemaining", remaining.toString());
+        localStorage.removeItem('timerStartTimestamp');
+        document.querySelector('.button.start').textContent = "Start";
+        return 
+      }
+
+      isPaused = false;
+      document.querySelector('.button.start').textContent = "Pause"
+
       stopFireworks();
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
@@ -229,12 +245,18 @@
       clearInterval(interval);
     
       let mins, secs;
-      if (!resume) {
-        mins = parseInt(document.getElementById('minutes').value) || 0;
-        secs = parseInt(document.getElementById('seconds').value) || 0;
+
+      // Determine starting point
+      if (pauseRemaining != null) {
+        remaining = pauseRemaining;
+        localStorage.setItem('timerStartTimestamp', Date.now().toString());
+        localStorage.setItem('timerDuration', remaining.toString());
+        localStorage.removeItem('pausedRemaining');
+        pauseRemaining = null;
+      } else if (!resume) {
+        const mins = parseInt(document.getElementById('minutes').value) || 0;
+        const secs = parseInt(document.getElementById('seconds').value) || 0;
         remaining = mins * 60 + secs;
-      
-        // Save timestamp and duration
         localStorage.setItem('timerStartTimestamp', Date.now().toString());
         localStorage.setItem('timerDuration', remaining.toString());
       }
@@ -284,9 +306,16 @@
 
     function resetTimer() {
       clearInterval(interval);
+      interval = null;
+      isPaused = false;
+      pauseRemaining = null;
+
+      document.querySelector('.button.start').textContent = "Start"
       stopFireworks();
+
       localStorage.removeItem('timerStartTimestamp');
       localStorage.removeItem('timerDuration');
+      localStorage.removeItem('pausedRemaining');
       document.getElementById('timer-minutes').classList.remove('timer-alert');
       document.getElementById('timer-seconds').classList.remove('timer-alert');
     
@@ -326,12 +355,6 @@
       editor.focus();
     });
 
-    editor.addEventListener('blur', () => {
-      renderMarkdown(editor.value);
-      editor.style.display = 'none';
-      view.style.display = 'block';
-    });
-
     // Restore previous states
     window.addEventListener('DOMContentLoaded', () => {
       // Restore markdown
@@ -342,16 +365,29 @@
       }
     
       // Restore timer
-      const savedStart = localStorage.getItem('timerStartTimestamp');
-      const duration = parseInt(localStorage.getItem('timerDuration'));
-      if (savedStart && duration) {
-        const elapsed = Math.floor((Date.now() - parseInt(savedStart)) / 1000);
-        const remainingTime = duration - elapsed;
-        if (remainingTime > 0) {
-          remaining = remainingTime;
-          startTimer(true); // Resume mode
-        } else {
-          localStorage.removeItem('timerStartTimestamp');
+      const paused = localStorage.getItem('pausedRemaining');
+      if (paused) {
+        pauseRemaining = parseInt(paused);
+        remaining = pauseRemaining;
+        const min = Math.floor(remaining / 60).toString().padStart(2, '0');
+        const sec = (remaining % 60).toString().padStart(2, '0');
+        document.getElementById('timer-minutes').textContent = min;
+        document.getElementById('timer-seconds').textContent = sec;
+        document.querySelector('.button.start').textContent = "Start";
+      } else {
+        // Resume from startTimestamp like before
+        const savedStart = localStorage.getItem('timerStartTimestamp');
+        const duration = parseInt(localStorage.getItem('timerDuration'));
+        if (savedStart && duration) {
+          const elapsed = Math.floor((Date.now() - parseInt(savedStart)) / 1000);
+          const remainingTime = duration - elapsed;
+          if (remainingTime > 0) {
+            remaining = remainingTime;
+            startTimer(true); // resume from saved start
+          } else {
+            localStorage.removeItem('timerStartTimestamp');
+            localStorage.removeItem('timerDuration');
+          }
         }
       }
     });
